@@ -4,7 +4,7 @@ export interface StickVector {
 }
 
 // A full push needs only this share of the ring's radius, so little thumb travel is needed.
-const TRAVEL = 0.65;
+const TRAVEL = 0.55;
 
 // On-screen joystick for phones and tablets, so a thumb never covers the runner.
 // Touch anywhere on the screen: the stick appears under the thumb and the runner moves

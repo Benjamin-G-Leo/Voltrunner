@@ -8,8 +8,10 @@ import { localScoreStore } from './ScoreStore';
 import type { Joystick } from './Joystick';
 
 // Joystick feel: ignore tiny wobbles, reach full speed a little before the ring's edge.
-const JOYSTICK_DEADZONE = 0.08;
-const JOYSTICK_FULL_SPEED = 0.9;
+const JOYSTICK_DEADZONE = 0.05;
+const JOYSTICK_FULL_SPEED = 0.85;
+// Thumb steering is less precise than keys, so the runner is quicker on the joystick.
+const JOYSTICK_SPEED_BOOST = 1.3;
 
 export class Game {
   private canvas: HTMLCanvasElement;
@@ -324,7 +326,7 @@ export class Game {
       const power = Math.min(1, Math.max(0, (length - JOYSTICK_DEADZONE) / (JOYSTICK_FULL_SPEED - JOYSTICK_DEADZONE)));
       dx = (stick.x / length) * power;
       dy = (stick.y / length) * power;
-      this.player.setSpeed(this.getPlayerSpeed());
+      this.player.setSpeed(this.getPlayerSpeed() * JOYSTICK_SPEED_BOOST);
     } else if (this.touchTarget) {
       this.pointerSpeed *= Math.pow(0.82, deltaTime);
       this.player.setSpeed(Math.max(2.5, this.getPlayerSpeed(), this.pointerSpeed));
