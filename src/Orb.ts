@@ -1,3 +1,6 @@
+// Top speed of the magnet pull (px per frame); the runner moves much faster than this.
+const ORB_PULL_SPEED = 2.4;
+
 export class Orb {
   x: number;
   y: number;
@@ -32,6 +35,17 @@ export class Orb {
     this.pulsePhase += 0.08 * speedMultiplier * frameScale;
     this.lifetime -= frameScale / 60;
     if (this.lifetime <= 0) this.isActive = false;
+  }
+
+  // Gentle magnet: inside `range` the orb drifts toward the runner, harder the closer it is.
+  attract(targetX: number, targetY: number, range: number, deltaTime: number = 1): void {
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance <= 0 || distance > range) return;
+    const pull = ORB_PULL_SPEED * (1 - distance / range) * Math.min(deltaTime, 2);
+    this.x += (dx / distance) * pull;
+    this.y += (dy / distance) * pull;
   }
 
   checkBounds(width: number, height: number): void {

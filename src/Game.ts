@@ -8,6 +8,8 @@ import { localScoreStore } from './ScoreStore';
 import type { Joystick } from './Joystick';
 
 // Joystick feel: ignore tiny wobbles, reach full speed a little before the ring's edge.
+// Energy orbs drift toward the runner when it comes this close (px, before screen scaling).
+const ORB_ATTRACT_RANGE = 130;
 const JOYSTICK_DEADZONE = 0.05;
 const JOYSTICK_FULL_SPEED = 0.85;
 // Thumb steering is less precise than keys, so the runner is quicker on the joystick.
@@ -378,6 +380,7 @@ export class Game {
   private updateOrbs(deltaTime: number): void {
     this.orbs.forEach(orb => {
       orb.update(this.stats.speed * 0.5, deltaTime);
+      orb.attract(this.player.x, this.player.y, ORB_ATTRACT_RANGE * this.entityScale, deltaTime);
       orb.checkBounds(this.config.gameWidth, this.config.gameHeight);
       // Orb timed out uncollected: combo breaks.
       if (!orb.isActive && orb.lifetime <= 0) this.stats.combo = 1;

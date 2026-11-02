@@ -41,7 +41,7 @@ On phones and tablets (`matchMedia('(pointer: coarse)')`) `Joystick.ts` shows an
 
 - `main.ts` — `NeonRush` class (the game's old name): bootstraps the app, screen navigation (menu / game / game over), pause/resume, menu background animation, sound toggle.
 - `Game.ts` — main loop, game state, scoring, combos, the score-goal system, difficulty ramp, collisions, HUD updates.
-- `Player.ts`, `Orb.ts`, `Obstacle.ts` — entities, each owning its movement and rendering.
+- `Player.ts`, `Orb.ts`, `Obstacle.ts` — entities, each owning its movement and rendering. Orbs drift toward the runner inside `ORB_ATTRACT_RANGE` (Game.ts); that makes orbs a bit easier to collect, so keep `max_plausible_score` generous if you raise it.
 - `ParticleSystem.ts`, `BackgroundRenderer.ts`, `AudioManager.ts` (Web Audio sounds generated in code, no audio files).
 - `Joystick.ts` — on-screen joystick for touch devices. `privacy.html` / `terms.html` — the privacy policy and terms of service pages.
 - `auth.ts` — Supabase client, sign up / log in / log out, cloud high score. `ScoreStore.ts` — guest high score in localStorage. `Game` takes a `ScoreStore`, so it doesn't know whether the score is local or cloud.
