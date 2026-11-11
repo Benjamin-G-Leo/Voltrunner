@@ -1138,3 +1138,18 @@ html, body {
   .hud-stat { min-width: 62px; }
   .hud-stat:last-child { display: none; }
 }
+.auth-link {
+  align-self: flex-end;
+  margin: -0.2rem 0 0;
+  padding: 0.2rem 0;
+  border: 0;
+  background: none;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  color: #00ffff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.auth-link[hidden] { display: none; }
+.auth-link[disabled] { opacity: 0.5; cursor: not-allowed; }

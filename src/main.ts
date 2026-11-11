@@ -10,6 +10,11 @@ import {
   getAccount,
   getCachedCloudScore,
   onSignedOut,
+  openedFromExpiredLink,
+  openedFromResetLink,
+  passwordResetEnabled,
+  requestPasswordReset,
+  setNewPassword,
   signIn,
   signOut,
   signUp
@@ -326,11 +331,34 @@ class NeonRush {
     const account = await getAccount();
     if (account) await this.useAccount(account);
     else this.useGuest();
+
+    // Came back from the "reset password" email: choose a new password first.
+    if (openedFromResetLink && account) {
+      this.clearUrlHash();
+      this.showScreen('reset-screen');
+      return;
+    }
+    if (openedFromExpiredLink) {
+      this.clearUrlHash();
+      this.setAuthMode('login');
+      this.setAuthMessage('That reset link has expired or was already used. Ask for a new one.');
+      this.showScreen('auth-screen');
+      return;
+    }
     this.showScreen(account || this.isGuestSession() ? 'main-menu' : 'auth-screen');
   }
 
-  private showScreen(id: 'main-menu' | 'auth-screen'): void {
-    for (const screenId of ['main-menu', 'auth-screen']) {
+  // The reset link puts a login token in the address; remove it from view and history.
+  private clearUrlHash(): void {
+    try {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    } catch {
+      // Not important: the address just keeps the hash.
+    }
+  }
+
+  private showScreen(id: 'main-menu' | 'auth-screen' | 'reset-screen'): void {
+    for (const screenId of ['main-menu', 'auth-screen', 'reset-screen']) {
       document.getElementById(screenId)?.classList.toggle('active', screenId === id);
     }
   }
@@ -388,9 +416,12 @@ class NeonRush {
   private setupAuthUI(): void {
     const byId = (id: string) => document.getElementById(id);
 
+    this.setAuthMode('login'); // also shows or hides "Forgot password?"
     byId('tab-login')?.addEventListener('click', () => this.setAuthMode('login'));
     byId('tab-signup')?.addEventListener('click', () => this.setAuthMode('signup'));
     byId('auth-form')?.addEventListener('submit', (e) => void this.submitAuth(e));
+    byId('forgot-btn')?.addEventListener('click', () => void this.sendResetEmail());
+    byId('reset-form')?.addEventListener('submit', (e) => void this.submitNewPassword(e));
 
     byId('guest-btn')?.addEventListener('click', () => {
       this.useGuest();
@@ -563,6 +594,8 @@ class NeonRush {
     if (submit) submit.textContent = signup ? 'CREATE ACCOUNT' : 'LOG IN';
     const consent = document.getElementById('field-consent');
     if (consent) consent.hidden = !signup;
+    const forgot = document.getElementById('forgot-btn');
+    if (forgot) forgot.hidden = signup || !passwordResetEnabled;
     const password = document.getElementById('auth-password') as HTMLInputElement | null;
     if (password) password.autocomplete = signup ? 'new-password' : 'current-password';
     this.setAuthMessage('');
@@ -573,6 +606,69 @@ class NeonRush {
     if (!message) return;
     message.textContent = text;
     message.classList.toggle('info', isInfo);
+  }
+
+  // "Forgot password?": emails a reset link to the address typed in the email box.
+  private async sendResetEmail(): Promise<void> {
+    const email = (document.getElementById('auth-email') as HTMLInputElement).value.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      this.setAuthMessage('Type your email above first, then tap Forgot password');
+      return;
+    }
+    const button = document.getElementById('forgot-btn') as HTMLButtonElement;
+    button.disabled = true;
+    this.setAuthMessage('Sending...', true);
+    const result = await requestPasswordReset(email);
+    if (result.ok) {
+      this.setAuthMessage('If that email has an account, a reset link is on its way. Check your spam folder too.', true);
+      // Short pause between requests (the server also limits how many emails go out).
+      window.setTimeout(() => (button.disabled = false), 60000);
+    } else {
+      this.setAuthMessage(result.error);
+      button.disabled = false;
+    }
+  }
+
+  private async submitNewPassword(e: Event): Promise<void> {
+    e.preventDefault();
+    const first = (document.getElementById('reset-password') as HTMLInputElement).value;
+    const second = (document.getElementById('reset-password2') as HTMLInputElement).value;
+    const message = document.getElementById('reset-message');
+    const say = (text: string): void => {
+      if (message) message.textContent = text;
+    };
+    if (first.length < 8) {
+      say('Password needs at least 8 characters');
+      return;
+    }
+    if (first !== second) {
+      say('The two passwords do not match');
+      return;
+    }
+
+    const submit = document.getElementById('reset-submit') as HTMLButtonElement;
+    submit.disabled = true;
+    say('');
+    try {
+      const result = await setNewPassword(first);
+      if (!result.ok) {
+        say(result.error);
+        return;
+      }
+      (document.getElementById('reset-password') as HTMLInputElement).value = '';
+      (document.getElementById('reset-password2') as HTMLInputElement).value = '';
+      if (result.account) await this.useAccount(result.account);
+      this.rememberGuest(false);
+      this.showScreen('main-menu');
+      window.clearTimeout(this.networkFlashTimer);
+      this.refreshNetworkBadge('PASSWORD CHANGED ✓');
+      this.networkFlashTimer = window.setTimeout(() => this.refreshNetworkBadge(), 3500);
+    } catch (error) {
+      console.warn('Password change failed:', error);
+      say('Something went wrong. Try again.');
+    } finally {
+      submit.disabled = false;
+    }
   }
 
   private async submitAuth(e: Event): Promise<void> {

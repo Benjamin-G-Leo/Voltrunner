@@ -8,6 +8,15 @@ const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 export const authEnabled = Boolean(url && key);
 const client: SupabaseClient | null = authEnabled ? createClient(url!, key!) : null;
 
+// "Forgot password" sends an email, which needs a real email service set up in Supabase
+// (its built-in one only reaches the project owner). Set VITE_PASSWORD_RESET=on once that is done.
+export const passwordResetEnabled = authEnabled && import.meta.env.VITE_PASSWORD_RESET === 'on';
+
+// The reset email's link brings the player back here with a token in the address.
+const startHash = typeof window !== 'undefined' ? window.location.hash : '';
+export const openedFromResetLink = passwordResetEnabled && /[#&]type=recovery\b/.test(startHash);
+export const openedFromExpiredLink = passwordResetEnabled && /error_code=otp_expired/.test(startHash);
+
 // Date of the privacy policy the sign-up checkbox points to (src/privacy.html). Change it
 // whenever the policy changes in a way players should agree to again.
 export const PRIVACY_POLICY_DATE = '2026-11-01';
@@ -145,6 +154,38 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   if (response === TIMED_OUT) return { ok: false, error: SLOW_MESSAGE };
   const { data, error } = response;
   if (error) return { ok: false, error: isNetworkError(error.message) ? OFFLINE_MESSAGE : error.message };
+  return { ok: true, account: toAccount(data.user) };
+}
+
+export async function requestPasswordReset(email: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!client) return { ok: false, error: 'Accounts are not set up.' };
+  if (isOffline()) return { ok: false, error: OFFLINE_MESSAGE };
+  const response = await withTimeout(
+    client.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/' }),
+    15000
+  );
+  if (response === TIMED_OUT) return { ok: false, error: SLOW_MESSAGE };
+  const { error } = response;
+  if (error) {
+    if (/rate limit|too many|seconds/i.test(error.message)) {
+      return { ok: false, error: 'Too many requests. Wait a few minutes and try again.' };
+    }
+    return { ok: false, error: isNetworkError(error.message) ? OFFLINE_MESSAGE : 'Could not send the email. Try again later.' };
+  }
+  // Same answer whether or not the email has an account, so nobody can probe for emails.
+  return { ok: true };
+}
+
+export async function setNewPassword(password: string): Promise<AuthResult> {
+  if (!client) return { ok: false, error: 'Accounts are not set up.' };
+  if (isOffline()) return { ok: false, error: OFFLINE_MESSAGE };
+  const response = await withTimeout(client.auth.updateUser({ password }), 15000);
+  if (response === TIMED_OUT) return { ok: false, error: SLOW_MESSAGE };
+  const { data, error } = response;
+  if (error) {
+    if (/different from the old/i.test(error.message)) return { ok: false, error: 'Pick a password you have not used before.' };
+    return { ok: false, error: isNetworkError(error.message) ? OFFLINE_MESSAGE : error.message };
+  }
   return { ok: true, account: toAccount(data.user) };
 }
 

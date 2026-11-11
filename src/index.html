@@ -54,11 +54,31 @@
             <input id="auth-consent" type="checkbox">
             <span>I am at least 13 years old and agree to the <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
           </label>
+          <button type="button" id="forgot-btn" class="auth-link" hidden>Forgot password?</button>
           <p id="auth-message" class="auth-message" role="alert"></p>
           <button id="auth-submit" type="submit" class="btn btn-primary btn-lg">LOG IN</button>
         </form>
         <p class="auth-note">Your email is only used to log in. Your username and best score show on the public leaderboard. <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/terms.html" target="_blank" rel="noopener">Terms</a></p>
         <button type="button" id="guest-btn" class="btn btn-secondary">PLAY AS GUEST</button>
+      </div>
+    </div>
+
+    <!-- Choose a new password (opened from the link in the reset email) -->
+    <div id="reset-screen" class="screen">
+      <div class="auth-card">
+        <h2 class="auth-title">NEW PASSWORD</h2>
+        <form id="reset-form" class="auth-form" novalidate>
+          <label class="auth-field">
+            <span>NEW PASSWORD</span>
+            <input id="reset-password" type="password" autocomplete="new-password" placeholder="at least 8 characters">
+          </label>
+          <label class="auth-field">
+            <span>REPEAT PASSWORD</span>
+            <input id="reset-password2" type="password" autocomplete="new-password" placeholder="same again">
+          </label>
+          <p id="reset-message" class="auth-message" role="alert"></p>
+          <button id="reset-submit" type="submit" class="btn btn-primary btn-lg">SAVE PASSWORD</button>
+        </form>
       </div>
     </div>
 

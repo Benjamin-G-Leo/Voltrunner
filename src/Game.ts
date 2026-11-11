@@ -14,6 +14,8 @@ const JOYSTICK_DEADZONE = 0.05;
 const JOYSTICK_FULL_SPEED = 0.85;
 // Thumb steering is less precise than keys, so the runner is quicker on the joystick.
 const JOYSTICK_SPEED_BOOST = 1.3;
+// Keyboard and mouse (no joystick) get a small speed-up too.
+const DESKTOP_SPEED_BOOST = 1.12;
 
 export class Game {
   private canvas: HTMLCanvasElement;
@@ -353,7 +355,8 @@ export class Game {
   // Runner gets faster with survival time (+4% per 10s), capped at +40%.
   private getPlayerSpeed(): number {
     const timeBoost = Math.min(0.4, Math.floor(this.stats.survivalTime / 10) * 0.04);
-    return this.config.playerSpeed * (1 + timeBoost) * this.entityScale;
+    const deviceBoost = this.joystick ? 1 : DESKTOP_SPEED_BOOST;
+    return this.config.playerSpeed * (1 + timeBoost) * this.entityScale * deviceBoost;
   }
 
   private updateSpeed(): void {
